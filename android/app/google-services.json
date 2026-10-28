@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "961163650621",
+    "project_id": "packeasy-8c952",
+    "storage_bucket": "packeasy-8c952.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:961163650621:android:856928260c0db2b6d6ec54",
+        "android_client_info": {
+          "package_name": "com.example.packeasy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "961163650621-nudncsi02i8jt9n41222l6i5bk99ksg9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSaa6G4Z9U2noyHbeYP4OkPxMwoOFrTqg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "961163650621-nudncsi02i8jt9n41222l6i5bk99ksg9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
