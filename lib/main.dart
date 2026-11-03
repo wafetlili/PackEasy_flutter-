@@ -23,6 +23,8 @@ void main() async {
   await initializeDateFormatting('fr_FR', null);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  await AuthService().createSuperAdmin(); // ✅ AJOUT : à retirer après le 1er lancement
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => DestinationProvider(),
@@ -30,6 +32,7 @@ void main() async {
     ),
   );
 }
+  
 
 class AppScrollBehavior extends MaterialScrollBehavior {
   @override

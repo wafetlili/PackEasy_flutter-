@@ -6,7 +6,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
+  // ✅ AJOUT : identifiants du super admin (change-les)
+  static const String adminEmail = 'admin@packeasy.com';
+  static const String adminPassword = 'Admin@12345'; // minimum 6 caractères
+
   // Variable statique pour éviter l'erreur "init() already called" sur mobile
   static bool _googleInitialized = false;
 
@@ -17,8 +21,34 @@ class AuthService {
     _googleInitialized = true;
   }
 
+  // ✅ AJOUT : création du super admin (à appeler UNE SEULE FOIS)
+  Future<void> createSuperAdmin() async {
+    try {
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
+        email: adminEmail,
+        password: adminPassword,
+      );
+
+      await _firestore.collection('users').doc(result.user!.uid).set({
+        'email': adminEmail,
+        'role': 'admin',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await _auth.signOut(); // on se déconnecte après la création
+      debugPrint('Super admin créé avec succès');
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        debugPrint('Le super admin existe déjà');
+      } else {
+        debugPrint('Erreur création admin: ${e.message}');
+      }
+    } catch (e) {
+      debugPrint('Erreur création admin: $e');
+    }
+  }
+
   // --- 1. INSCRIPTION ---
-  // Accepte un rôle (par défaut 'user') et l'enregistre dans Firestore
   Future<User?> signUp(String email, String password, {String role = 'user'}) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -26,7 +56,6 @@ class AuthService {
         password: password,
       );
 
-      // On crée le profil de l'utilisateur dans Firestore avec son rôle
       if (result.user != null) {
         await _firestore.collection('users').doc(result.user!.uid).set({
           'email': email,
@@ -55,15 +84,12 @@ class AuthService {
     }
   }
 
-  // --- 3. RÉCUPÉRER LE RÔLE ---
-  // Lit le rôle de l'utilisateur dans Firestore pour savoir où le rediriger
+  // --- 3. RÉCUPÉRER LE RÔLE --- ✅ CORRIGÉ (plus de plantage si 'role' est absent)
   Future<String> getUserRole(String uid) async {
     try {
       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        return doc.get('role') ?? 'user'; // Par défaut : 'user'
-      }
-      return 'user';
+      final data = doc.data() as Map<String, dynamic>?;
+      return data?['role'] ?? 'user';
     } catch (e) {
       debugPrint("Erreur lors de la récupération du rôle: $e");
       return 'user';
@@ -74,29 +100,26 @@ class AuthService {
   Future<User?> signInWithGoogle() async {
     try {
       if (kIsWeb) {
-        // LOGIQUE WEB : Utilisation de la popup Firebase (contourne les limites de GoogleSignIn v7)
         GoogleAuthProvider googleProvider = GoogleAuthProvider();
         UserCredential result = await _auth.signInWithPopup(googleProvider);
-        
-        // Si c'est un nouvel utilisateur (1ère connexion avec Google), on crée son profil
+
         if (result.additionalUserInfo?.isNewUser ?? false) {
           await _firestore.collection('users').doc(result.user!.uid).set({
             'email': result.user!.email,
-            'role': 'user', // Par défaut, les connexions Google sont des 'user'
+            'role': 'user',
             'createdAt': FieldValue.serverTimestamp(),
           });
         }
         return result.user;
       } else {
-        // LOGIQUE MOBILE (Android/iOS)
         await _initGoogle();
         final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
         final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-        
+
         final credential = GoogleAuthProvider.credential(
           idToken: googleAuth.idToken,
         );
-        
+
         UserCredential result = await _auth.signInWithCredential(credential);
         return result.user;
       }
@@ -109,17 +132,16 @@ class AuthService {
   // --- 5. DÉCONNEXION ---
   Future<void> signOut() async {
     if (!kIsWeb) {
-      // Sur le Web, GoogleSignIn.instance n'est pas initialisé, on évite de l'appeler
       await GoogleSignIn.instance.signOut();
     }
     await _auth.signOut();
   }
 
-    // --- 6. RÉINITIALISATION DU MOT DE PASSE ---
+  // --- 6. RÉINITIALISATION DU MOT DE PASSE ---
   Future<bool> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      return true; // Email envoyé avec succès
+      return true;
     } catch (e) {
       debugPrint("Erreur reset password: $e");
       return false;

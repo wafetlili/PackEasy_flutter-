@@ -104,17 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    DropdownButtonFormField<String>(
-                      value: _selectedRole,
-                      decoration: _inputStyle("Type de compte", Icons.person_outline),
-                      items: const [
-                        DropdownMenuItem(value: 'user', child: Text("Voyageur")),
-                        DropdownMenuItem(value: 'admin', child: Text("Administrateur")),
-                      ],
-                      onChanged: (v) => setState(() => _selectedRole = v!),
-                    ),
-                    const SizedBox(height: 32),
-
+                   
                     SizedBox(
                       width: double.infinity,
                       height: 50,
