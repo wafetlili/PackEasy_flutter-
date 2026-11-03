@@ -17,7 +17,7 @@ import 'screens/destination_details_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'widgets/plane_route.dart';
 import 'services/auth_service.dart';
-
+import 'providers/trip_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('fr_FR', null);
@@ -25,9 +25,12 @@ void main() async {
 
   await AuthService().createSuperAdmin(); // ✅ AJOUT : à retirer après le 1er lancement
 
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => DestinationProvider(),
+    runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DestinationProvider()),
+        ChangeNotifierProvider(create: (_) => TripProvider()),
+      ],
       child: const PackEasyApp(),
     ),
   );
