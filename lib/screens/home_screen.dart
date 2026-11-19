@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       // Pas connecté -> Login
-      Navigator.pushNamed(context, '/login');
+      Navigator.pushReplacementNamed(context, '/login');
     } else {
       // Connecté -> On vérifie le rôle
       final role = await AuthService().getUserRole(user.uid);
@@ -108,11 +108,15 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(
           height: 160,
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('programs').snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('programs')
+                .snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              if (!snapshot.hasData)
+                return const Center(child: CircularProgressIndicator());
               final programs = snapshot.data!.docs;
-              if (programs.isEmpty) return const Center(child: Text("Aucun programme disponible."));
+              if (programs.isEmpty)
+                return const Center(child: Text("Aucun programme disponible."));
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: programs.length,
@@ -132,11 +136,16 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(
           height: 180,
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('trips').orderBy('startDate').snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('trips')
+                .orderBy('startDate')
+                .snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              if (!snapshot.hasData)
+                return const Center(child: CircularProgressIndicator());
               final trips = snapshot.data!.docs;
-              if (trips.isEmpty) return const Center(child: Text("Aucun voyage planifié."));
+              if (trips.isEmpty)
+                return const Center(child: Text("Aucun voyage planifié."));
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: trips.length,
@@ -151,7 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 24),
 
         // --- 3. TOUTES LES DESTINATIONS ---
-        Text('🌎 Toutes les destinations (${p.filtered.length})', style: titleStyle),
+        Text(
+          '🌎 Toutes les destinations (${p.filtered.length})',
+          style: titleStyle,
+        ),
         const SizedBox(height: 14),
       ],
     );
@@ -166,22 +178,49 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Container(
             decoration: BoxDecoration(
-              gradient: isConnected ? null : const LinearGradient(colors: [Colors.teal, Colors.tealAccent]),
+              gradient: isConnected
+                  ? null
+                  : const LinearGradient(
+                      colors: [Colors.teal, Colors.tealAccent],
+                    ),
               color: isConnected ? Colors.white.withOpacity(0.7) : null,
               borderRadius: BorderRadius.circular(30),
-              border: isConnected ? Border.all(color: Colors.white, width: 1.5) : null,
-              boxShadow: [BoxShadow(color: (isConnected ? Colors.black : Colors.teal).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+              border: isConnected
+                  ? Border.all(color: Colors.white, width: 1.5)
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: (isConnected ? Colors.black : Colors.teal).withOpacity(
+                    0.3,
+                  ),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: TextButton.icon(
               onPressed: _navigateToSpace, // <-- UTILISE LA NOUVELLE MÉTHODE
-              icon: Icon(isConnected ? Icons.person : Icons.login, color: isConnected ? Colors.teal : Colors.white, size: 18),
+              icon: Icon(
+                isConnected ? Icons.person : Icons.login,
+                color: isConnected ? Colors.teal : Colors.white,
+                size: 18,
+              ),
               label: Text(
                 isConnected ? "Mon Espace" : "Se connecter",
-                style: TextStyle(color: isConnected ? Colors.teal : Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(
+                  color: isConnected ? Colors.teal : Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
               ),
             ),
           ),
@@ -201,13 +240,18 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
-            title: const Text('PackEasy ✈️', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text(
+              'PackEasy ✈️',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             actions: [_buildAuthButton()],
             bottom: TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               tabs: categories.map((c) => Tab(text: c)).toList(),
-              onTap: (i) => context.read<DestinationProvider>().setCategory(categories[i]),
+              onTap: (i) => context.read<DestinationProvider>().setCategory(
+                categories[i],
+              ),
             ),
           ),
           drawer: Drawer(
@@ -215,12 +259,21 @@ class _HomeScreenState extends State<HomeScreen> {
               children: const [
                 DrawerHeader(
                   decoration: BoxDecoration(color: Colors.teal),
-                  child: Text('PackEasy', style: TextStyle(color: Colors.white, fontSize: 28)),
+                  child: Text(
+                    'PackEasy',
+                    style: TextStyle(color: Colors.white, fontSize: 28),
+                  ),
                 ),
                 ListTile(leading: Icon(Icons.home), title: Text('Accueil')),
                 ListTile(leading: Icon(Icons.favorite), title: Text('Favoris')),
-                ListTile(leading: Icon(Icons.history), title: Text('Historique')),
-                ListTile(leading: Icon(Icons.settings), title: Text('Paramètres')),
+                ListTile(
+                  leading: Icon(Icons.history),
+                  title: Text('Historique'),
+                ),
+                ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text('Paramètres'),
+                ),
               ],
             ),
           ),
@@ -238,9 +291,18 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Découvrir'),
-              BottomNavigationBarItem(icon: Icon(Icons.luggage), label: 'Voyages'),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.explore),
+                label: 'Découvrir',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.luggage),
+                label: 'Voyages',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profil',
+              ),
             ],
           ),
           body: Consumer<DestinationProvider>(
@@ -257,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               }
-              
+
               final list = p.filtered;
               return Center(
                 child: ConstrainedBox(
@@ -340,8 +402,10 @@ class _RotatingTitleState extends State<_RotatingTitle> {
           transitionBuilder: (child, anim) => FadeTransition(
             opacity: anim,
             child: SlideTransition(
-              position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
-                  .animate(anim),
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.5),
+                end: Offset.zero,
+              ).animate(anim),
               child: child,
             ),
           ),
