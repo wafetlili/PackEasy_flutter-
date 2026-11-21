@@ -1,11 +1,19 @@
+// ============================================================
+// home_screen.dart
+// Écran d'accueil : recherche, filtres, programmes, voyages
+// et liste des destinations.
+// ============================================================
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/destination.dart';
 import '../providers/destination_provider.dart';
-import '../services/auth_service.dart'; // <-- AJOUT IMPORTANT
+import '../providers/theme_provider.dart';
+import '../services/auth_service.dart';
 import '../widgets/destination_card.dart';
 import '../widgets/destination_image.dart';
 import '../widgets/travel_background.dart';
@@ -20,7 +28,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Catégories affichées dans la TabBar
   final categories = ['Tous', 'Plage', 'Culture', 'Nature', 'Ville'];
+
+  // Emoji associé à chaque continent pour les filtres
   final continentEmoji = {
     'Tous': '🌍',
     'Afrique': '🦁',
@@ -29,8 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
     'Amérique': '🗽',
     'Océanie': '🦘',
   };
+
+  // Contrôleur de la barre de recherche
   final _search = TextEditingController();
+
+  // Index de l'onglet actif dans la BottomNavigationBar
   int _navIndex = 0;
+
+  // Raccourci pour accéder au ThemeProvider
+  ThemeProvider get themeProvider => context.read<ThemeProvider>();
 
   @override
   void dispose() {
@@ -38,14 +56,15 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // --- LOGIQUE DE NAVIGATION INTELLIGENTE ---
+  // ------------------------------------------------------------
+  // Navigation intelligente : redirige vers login, dashboard
+  // utilisateur ou dashboard admin selon l'état de connexion.
+  // ------------------------------------------------------------
   Future<void> _navigateToSpace() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // Pas connecté -> Login
       Navigator.pushReplacementNamed(context, '/login');
     } else {
-      // Connecté -> On vérifie le rôle
       final role = await AuthService().getUserRole(user.uid);
       if (!mounted) return;
       if (role == 'admin') {
@@ -56,6 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // ------------------------------------------------------------
+  // En-tête de la page : titre animé, recherche, filtres,
+  // programmes et voyages à venir.
+  // ------------------------------------------------------------
   Widget _header(DestinationProvider p) {
     const titleStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
 
@@ -63,8 +86,9 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _RotatingTitle(),
-        Text('${p.total} destinations • 5 continents'),
+        Text('${p.total} destinations - 5 continents'),
         const SizedBox(height: 14),
+
         // Barre de recherche
         TextField(
           controller: _search,
@@ -81,7 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 14),
-        // Filtres continents
+
+        // Filtres par continent
         SizedBox(
           height: 46,
           child: ListView.builder(
@@ -102,8 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 18),
 
-        // --- 1. PROGRAMMES & SÉJOURS ---
-        const Text('🎒 Programmes & Séjours', style: titleStyle),
+        // Section 1 : programmes et séjours
+        const Text('Programmes et sejours', style: titleStyle),
         const SizedBox(height: 10),
         SizedBox(
           height: 160,
@@ -112,11 +137,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 .collection('programs')
                 .snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData)
+              if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
+              }
               final programs = snapshot.data!.docs;
-              if (programs.isEmpty)
-                return const Center(child: Text("Aucun programme disponible."));
+
+              if (programs.isEmpty) {
+                return const Center(
+                  child: Text("Aucun programme disponible."),
+                );
+              }
+
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: programs.length,
@@ -130,8 +161,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 22),
 
-        // --- 2. VOYAGES À VENIR ---
-        const Text('✈️ Voyages à venir', style: titleStyle),
+        // Section 2 : voyages à venir
+        const Text('Voyages a venir', style: titleStyle),
         const SizedBox(height: 10),
         SizedBox(
           height: 180,
@@ -141,11 +172,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 .orderBy('startDate')
                 .snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData)
+              if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
+              }
               final trips = snapshot.data!.docs;
-              if (trips.isEmpty)
-                return const Center(child: Text("Aucun voyage planifié."));
+
+              if (trips.isEmpty) {
+                return const Center(child: Text("Aucun voyage planifie."));
+              }
+
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: trips.length,
@@ -159,9 +194,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 24),
 
-        // --- 3. TOUTES LES DESTINATIONS ---
+        // Section 3 : toutes les destinations
         Text(
-          '🌎 Toutes les destinations (${p.filtered.length})',
+          'Toutes les destinations (${p.filtered.length})',
           style: titleStyle,
         ),
         const SizedBox(height: 14),
@@ -169,11 +204,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ------------------------------------------------------------
+  // Bouton d'authentification (Se connecter / Mon Espace)
+  // ------------------------------------------------------------
   Widget _buildAuthButton() {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         final isConnected = snapshot.hasData;
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Container(
@@ -190,16 +229,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   : null,
               boxShadow: [
                 BoxShadow(
-                  color: (isConnected ? Colors.black : Colors.teal).withOpacity(
-                    0.3,
-                  ),
+                  color: (isConnected ? Colors.black : Colors.teal)
+                      .withOpacity(0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: TextButton.icon(
-              onPressed: _navigateToSpace, // <-- UTILISE LA NOUVELLE MÉTHODE
+              onPressed: _navigateToSpace,
               icon: Icon(
                 isConnected ? Icons.person : Icons.login,
                 color: isConnected ? Colors.teal : Colors.white,
@@ -229,6 +267,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ------------------------------------------------------------
+  // Construction de la page principale
+  // ------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return TravelBackground(
@@ -236,47 +277,98 @@ class _HomeScreenState extends State<HomeScreen> {
         length: categories.length,
         child: Scaffold(
           backgroundColor: Colors.transparent,
+
+          // AppBar : titre, bouton de thème, bouton de connexion, TabBar
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
             title: const Text(
-              'PackEasy ✈️',
+              'PackEasy',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            actions: [_buildAuthButton()],
+            actions: [
+              // Bouton de changement de thème
+              Consumer<ThemeProvider>(
+                builder: (context, themeProvider, _) {
+                  return IconButton(
+                    tooltip: 'Changer de theme',
+                    icon: Icon(
+                      themeProvider.isDarkMode
+                          ? Icons.dark_mode
+                          : Icons.light_mode,
+                      color: themeProvider.isDarkMode
+                          ? Colors.amber
+                          : Colors.teal,
+                    ),
+                    onPressed: () => themeProvider.toggleTheme(),
+                  );
+                },
+              ),
+              // Bouton de connexion
+              _buildAuthButton(),
+            ],
             bottom: TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               tabs: categories.map((c) => Tab(text: c)).toList(),
-              onTap: (i) => context.read<DestinationProvider>().setCategory(
-                categories[i],
-              ),
+              onTap: (i) => context
+                  .read<DestinationProvider>()
+                  .setCategory(categories[i]),
             ),
           ),
+
+          // Drawer : menu latéral avec bouton de thème
           drawer: Drawer(
             child: ListView(
-              children: const [
-                DrawerHeader(
+              children: [
+                const DrawerHeader(
                   decoration: BoxDecoration(color: Colors.teal),
                   child: Text(
                     'PackEasy',
                     style: TextStyle(color: Colors.white, fontSize: 28),
                   ),
                 ),
-                ListTile(leading: Icon(Icons.home), title: Text('Accueil')),
-                ListTile(leading: Icon(Icons.favorite), title: Text('Favoris')),
-                ListTile(
+                const ListTile(
+                  leading: Icon(Icons.home),
+                  title: Text('Accueil'),
+                ),
+                const ListTile(
+                  leading: Icon(Icons.favorite),
+                  title: Text('Favoris'),
+                ),
+                const ListTile(
                   leading: Icon(Icons.history),
                   title: Text('Historique'),
                 ),
-                ListTile(
+                const ListTile(
                   leading: Icon(Icons.settings),
-                  title: Text('Paramètres'),
+                  title: Text('Parametres'),
+                ),
+
+                // Bouton de changement de thème
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, _) {
+                    return SwitchListTile(
+                      secondary: Icon(
+                        themeProvider.isDarkMode
+                            ? Icons.dark_mode
+                            : Icons.light_mode,
+                        color: themeProvider.isDarkMode
+                            ? Colors.amber
+                            : Colors.teal,
+                      ),
+                      title: const Text('Theme sombre'),
+                      value: themeProvider.isDarkMode,
+                      onChanged: (_) => themeProvider.toggleTheme(),
+                    );
+                  },
                 ),
               ],
             ),
           ),
+
+          // BottomNavigationBar
           bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.transparent,
@@ -286,14 +378,14 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _navIndex = i);
               if (i != 0) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Écran bientôt disponible')),
+                  const SnackBar(content: Text('Ecran bientot disponible')),
                 );
               }
             },
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.explore),
-                label: 'Découvrir',
+                label: 'Decouvrir',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.luggage),
@@ -305,6 +397,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+
+          // Corps : liste des destinations
           body: Consumer<DestinationProvider>(
             builder: (context, p, _) {
               if (p.isLoading) {
@@ -314,13 +408,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       CircularProgressIndicator(),
                       SizedBox(height: 12),
-                      Text('Préparation de votre voyage...'),
+                      Text('Preparation de votre voyage...'),
                     ],
                   ),
                 );
               }
 
               final list = p.filtered;
+
               return Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
@@ -329,6 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: list.isEmpty ? 2 : list.length + 1,
                     itemBuilder: (context, i) {
                       if (i == 0) return _header(p);
+
                       if (list.isEmpty) {
                         return const Padding(
                           padding: EdgeInsets.only(top: 30),
@@ -336,11 +432,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Icon(Icons.travel_explore, size: 70),
                               SizedBox(height: 8),
-                              Text('Aucune destination trouvée'),
+                              Text('Aucune destination trouvee'),
                             ],
                           ),
                         );
                       }
+
                       return DestinationCard(
                         key: ValueKey(list[i - 1].id),
                         destination: list[i - 1],
@@ -358,7 +455,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Titre dont le texte change toutes les 3 secondes
+// ============================================================
+// Widget : titre rotatif qui change toutes les 3 secondes
+// ============================================================
 class _RotatingTitle extends StatefulWidget {
   const _RotatingTitle();
 
@@ -368,12 +467,13 @@ class _RotatingTitle extends StatefulWidget {
 
 class _RotatingTitleState extends State<_RotatingTitle> {
   final phrases = [
-    'Où voulez-vous aller ?',
-    'Plages de rêve 🏝️',
-    'Villes inoubliables 🌆',
-    'Aventures nature 🏔️',
-    'Culture et histoire 🏛️',
+    'Ou voulez-vous aller ?',
+    'Plages de reve',
+    'Villes inoubliables',
+    'Aventures nature',
+    'Culture et histoire',
   ];
+
   int _i = 0;
   Timer? _timer;
 
@@ -412,7 +512,10 @@ class _RotatingTitleState extends State<_RotatingTitle> {
           child: Text(
             phrases[_i],
             key: ValueKey(_i),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
