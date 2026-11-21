@@ -10,12 +10,13 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../models/destination.dart';
 import '../providers/destination_provider.dart';
+import '../providers/locale_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../widgets/destination_card.dart';
-import '../widgets/destination_image.dart';
 import '../widgets/travel_background.dart';
 import '../widgets/program_card.dart';
 import '../widgets/trip_card.dart';
@@ -47,9 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // Index de l'onglet actif dans la BottomNavigationBar
   int _navIndex = 0;
 
-  // Raccourci pour accéder au ThemeProvider
-  ThemeProvider get themeProvider => context.read<ThemeProvider>();
-
   @override
   void dispose() {
     _search.dispose();
@@ -80,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // programmes et voyages à venir.
   // ------------------------------------------------------------
   Widget _header(DestinationProvider p) {
+    final l10n = AppLocalizations.of(context)!;
     const titleStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
 
     return Column(
@@ -89,12 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
         Text('${p.total} destinations - 5 continents'),
         const SizedBox(height: 14),
 
-        // Barre de recherche
+        // Barre de recherche avec texte traduit
         TextField(
           controller: _search,
           onChanged: p.setQuery,
           decoration: InputDecoration(
-            hintText: 'Rechercher une ville, un pays...',
+            hintText: l10n.search,
             prefixIcon: const Icon(Icons.search),
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface.withAlpha(200),
@@ -127,8 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 18),
 
-        // Section 1 : programmes et séjours
-        const Text('Programmes et sejours', style: titleStyle),
+        // Section 1 : programmes
+        Text(l10n.programs, style: titleStyle),
         const SizedBox(height: 10),
         SizedBox(
           height: 160,
@@ -143,9 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final programs = snapshot.data!.docs;
 
               if (programs.isEmpty) {
-                return const Center(
-                  child: Text("Aucun programme disponible."),
-                );
+                return Center(child: Text(l10n.noProgram));
               }
 
               return ListView.builder(
@@ -161,8 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 22),
 
-        // Section 2 : voyages à venir
-        const Text('Voyages a venir', style: titleStyle),
+        // Section 2 : voyages
+        Text(l10n.trips, style: titleStyle),
         const SizedBox(height: 10),
         SizedBox(
           height: 180,
@@ -178,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final trips = snapshot.data!.docs;
 
               if (trips.isEmpty) {
-                return const Center(child: Text("Aucun voyage planifie."));
+                return Center(child: Text(l10n.noTrip));
               }
 
               return ListView.builder(
@@ -196,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Section 3 : toutes les destinations
         Text(
-          'Toutes les destinations (${p.filtered.length})',
+          '${l10n.destinations} (${p.filtered.length})',
           style: titleStyle,
         ),
         const SizedBox(height: 14),
@@ -208,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Bouton d'authentification (Se connecter / Mon Espace)
   // ------------------------------------------------------------
   Widget _buildAuthButton() {
+    final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -244,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 size: 18,
               ),
               label: Text(
-                isConnected ? "Mon Espace" : "Se connecter",
+                isConnected ? l10n.monEspace : l10n.login,
                 style: TextStyle(
                   color: isConnected ? Colors.teal : Colors.white,
                   fontWeight: FontWeight.bold,
@@ -272,6 +270,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // ------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return TravelBackground(
       child: DefaultTabController(
         length: categories.length,
@@ -305,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-              // Bouton de connexion
+              // Bouton de connexion / Mon Espace
               _buildAuthButton(),
             ],
             bottom: TabBar(
@@ -318,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Drawer : menu latéral avec bouton de thème
+          // Drawer : menu latéral avec bouton de thème et sélecteur de langue
           drawer: Drawer(
             child: ListView(
               children: [
@@ -329,21 +329,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(color: Colors.white, fontSize: 28),
                   ),
                 ),
-                const ListTile(
-                  leading: Icon(Icons.home),
-                  title: Text('Accueil'),
+                ListTile(
+                  leading: const Icon(Icons.home),
+                  title: Text(l10n.home),
                 ),
-                const ListTile(
-                  leading: Icon(Icons.favorite),
-                  title: Text('Favoris'),
+                ListTile(
+                  leading: const Icon(Icons.favorite),
+                  title: Text(l10n.favorites),
                 ),
-                const ListTile(
-                  leading: Icon(Icons.history),
-                  title: Text('Historique'),
+                ListTile(
+                  leading: const Icon(Icons.history),
+                  title: Text(l10n.history),
                 ),
-                const ListTile(
-                  leading: Icon(Icons.settings),
-                  title: Text('Parametres'),
+                ListTile(
+                  leading: const Icon(Icons.settings),
+                  title: Text(l10n.settings),
                 ),
 
                 // Bouton de changement de thème
@@ -358,9 +358,32 @@ class _HomeScreenState extends State<HomeScreen> {
                             ? Colors.amber
                             : Colors.teal,
                       ),
-                      title: const Text('Theme sombre'),
+                      title: Text(l10n.darkTheme),
                       value: themeProvider.isDarkMode,
                       onChanged: (_) => themeProvider.toggleTheme(),
+                    );
+                  },
+                ),
+
+                // Sélecteur de langue
+                Consumer<LocaleProvider>(
+                  builder: (context, localeProvider, _) {
+                    return ListTile(
+                      leading: const Icon(Icons.language),
+                      title: Text(l10n.language),
+                      trailing: DropdownButton<String>(
+                        value: localeProvider.locale.languageCode,
+                        onChanged: (code) {
+                          if (code != null) {
+                            localeProvider.setLocale(Locale(code));
+                          }
+                        },
+                        items: const [
+                          DropdownMenuItem(value: 'fr', child: Text('Français')),
+                          DropdownMenuItem(value: 'en', child: Text('English')),
+                          DropdownMenuItem(value: 'ar', child: Text('العربية')),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -382,18 +405,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }
             },
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.explore),
-                label: 'Decouvrir',
+                icon: const Icon(Icons.explore),
+                label: l10n.discover,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.luggage),
-                label: 'Voyages',
+                icon: const Icon(Icons.luggage),
+                label: l10n.trips,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'Profil',
+                icon: const Icon(Icons.person),
+                label: l10n.profileTab,
               ),
             ],
           ),
@@ -402,13 +425,13 @@ class _HomeScreenState extends State<HomeScreen> {
           body: Consumer<DestinationProvider>(
             builder: (context, p, _) {
               if (p.isLoading) {
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text('Preparation de votre voyage...'),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 12),
+                      Text(l10n.loading),
                     ],
                   ),
                 );
@@ -426,13 +449,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (i == 0) return _header(p);
 
                       if (list.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.only(top: 30),
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 30),
                           child: Column(
                             children: [
-                              Icon(Icons.travel_explore, size: 70),
-                              SizedBox(height: 8),
-                              Text('Aucune destination trouvee'),
+                              const Icon(Icons.travel_explore, size: 70),
+                              const SizedBox(height: 8),
+                              Text(l10n.noDestination),
                             ],
                           ),
                         );

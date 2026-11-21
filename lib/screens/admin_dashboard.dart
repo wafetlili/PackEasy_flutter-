@@ -3,11 +3,13 @@
 // Tableau de bord de l'administrateur : statistiques, gestion
 // des destinations, programmes, voyages et utilisateurs.
 // ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../providers/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../widgets/travel_background.dart';
@@ -20,14 +22,14 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  // Instance Firestore utilisée dans tout le dashboard
+  // Instance Firestore utilisee dans tout le dashboard
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Index de l'onglet actif dans la BottomNavigationBar
   int _selectedIndex = 0;
 
   // ------------------------------------------------------------
-  // Déconnexion de l'administrateur
+  // Deconnexion de l'administrateur
   // ------------------------------------------------------------
   void _logout() async {
     await AuthService().signOut();
@@ -52,12 +54,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // SECTION 1 : STATISTIQUES ET VOYAGES A VENIR
   // ============================================================
   Widget _buildStatsTab() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // En-tête : salutation + date du jour
+          // En-tete : salutation + date du jour
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -87,7 +90,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           const SizedBox(height: 20),
 
-          // Cartes de statistiques
+          // Cartes de statistiques (ligne 1)
           Row(
             children: [
               Expanded(
@@ -100,6 +103,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ],
           ),
           const SizedBox(height: 12),
+
+          // Cartes de statistiques (ligne 2)
           Row(
             children: [
               Expanded(
@@ -113,10 +118,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           const SizedBox(height: 24),
 
-          // Liste des prochains départs
-          const Text(
-            "Departs imminents",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          // Liste des prochains departs
+          Text(
+            l10n.upcomingDepartures,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
@@ -131,7 +136,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               }
               final trips = snapshot.data!.docs;
               if (trips.isEmpty) {
-                return const Text("Aucun voyage a venir.");
+                return Text(l10n.noUpcomingTrip);
               }
 
               return Column(
@@ -165,7 +170,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Carte de statistique générique
+  // Carte de statistique generique (compte les documents d'une collection)
   Widget _statCard(String title, IconData icon, Color color, String collection) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection(collection).snapshots(),
@@ -208,13 +213,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // SECTION 2 : DESTINATIONS
   // ============================================================
   Widget _buildDestinationsTab() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
+        // Bouton d'ajout d'une destination
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton.icon(
             icon: const Icon(Icons.add_location),
-            label: const Text("Ajouter une destination"),
+            label: Text(l10n.addDestination),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade800,
               foregroundColor: Colors.white,
@@ -223,6 +230,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onPressed: () => _showAddDestinationDialog(),
           ),
         ),
+
+        // Liste des destinations depuis Firestore
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: _firestore.collection('destinations').snapshots(),
@@ -232,7 +241,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               }
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) {
-                return const Center(child: Text("Aucune destination."));
+                return Center(child: Text(l10n.noDestination));
               }
 
               return ListView.builder(
@@ -271,13 +280,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // SECTION 3 : PROGRAMMES
   // ============================================================
   Widget _buildProgramsTab() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
+        // Bouton de creation d'un programme
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton.icon(
             icon: const Icon(Icons.add_road),
-            label: const Text("Creer un programme"),
+            label: Text(l10n.addProgram),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade800,
               foregroundColor: Colors.white,
@@ -286,6 +297,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onPressed: () => _showAddProgramDialog(),
           ),
         ),
+
+        // Liste des programmes depuis Firestore
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: _firestore.collection('programs').snapshots(),
@@ -295,7 +308,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               }
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) {
-                return const Center(child: Text("Aucun programme."));
+                return Center(child: Text(l10n.noProgram));
               }
 
               return ListView.builder(
@@ -333,13 +346,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // SECTION 4 : VOYAGES
   // ============================================================
   Widget _buildTripsTab() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
+        // Bouton d'ajout d'un voyage
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton.icon(
             icon: const Icon(Icons.add_location_alt),
-            label: const Text("Ajouter un voyage"),
+            label: Text(l10n.addTrip),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade800,
               foregroundColor: Colors.white,
@@ -348,6 +363,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onPressed: () => _showAddTripDialog(),
           ),
         ),
+
+        // Liste des voyages depuis Firestore
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: _firestore
@@ -360,7 +377,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               }
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) {
-                return const Center(child: Text("Aucun voyage planifie."));
+                return Center(child: Text(l10n.noTrip));
               }
 
               return ListView.builder(
@@ -445,6 +462,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   // Dialogue d'ajout d'une destination
   void _showAddDestinationDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final nameCtrl = TextEditingController();
     final countryCtrl = TextEditingController();
     final imageCtrl = TextEditingController();
@@ -459,7 +477,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) {
           return AlertDialog(
-            title: const Text("Nouvelle Destination"),
+            title: Text(l10n.addDestination),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -508,7 +526,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("Annuler"),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -536,7 +554,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   });
                   Navigator.pop(context);
                 },
-                child: const Text("Ajouter"),
+                child: Text(l10n.save),
               ),
             ],
           );
@@ -545,8 +563,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Dialogue de création d'un programme
+  // Dialogue de creation d'un programme
   void _showAddProgramDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final durationCtrl = TextEditingController();
@@ -558,7 +577,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) {
           return AlertDialog(
-            title: const Text("Nouveau Programme"),
+            title: Text(l10n.addProgram),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -600,7 +619,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("Annuler"),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -613,7 +632,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   });
                   Navigator.pop(context);
                 },
-                child: const Text("Creer"),
+                child: Text(l10n.save),
               ),
             ],
           );
@@ -624,6 +643,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   // Dialogue d'ajout d'un voyage
   void _showAddTripDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final titleCtrl = TextEditingController();
     final destCtrl = TextEditingController();
     final startCtrl = TextEditingController();
@@ -634,7 +654,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Nouveau Voyage"),
+        title: Text(l10n.addTrip),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -674,7 +694,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Annuler"),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -688,7 +708,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               });
               Navigator.pop(context);
             },
-            child: const Text("Enregistrer"),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -700,6 +720,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // ============================================================
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final List<Widget> pages = [
       _buildStatsTab(),
       _buildDestinationsTab(),
@@ -712,7 +733,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
 
-        // AppBar
+        // --------------------------------------------------------
+        // AppBar fine et transparente
+        // --------------------------------------------------------
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(60.0),
           child: Container(
@@ -754,7 +777,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.home, color: Colors.teal),
-                  tooltip: "Retour a l'accueil",
+                  tooltip: l10n.backToApp,
                   onPressed: () =>
                       Navigator.pushReplacementNamed(context, '/home'),
                 ),
@@ -762,7 +785,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   icon: const Icon(Icons.notifications_none, color: Colors.teal),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Aucune notification")),
+                      SnackBar(content: Text("Aucune notification")),
                     );
                   },
                 ),
@@ -779,7 +802,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
 
-        // Drawer
+        // --------------------------------------------------------
+        // Drawer de navigation
+        // --------------------------------------------------------
         drawer: Drawer(
           child: ListView(
             padding: EdgeInsets.zero,
@@ -811,15 +836,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
               ),
 
-              _drawerItem(Icons.dashboard, "Tableau de bord", 0),
-              _drawerItem(Icons.map, "Destinations", 1),
-              _drawerItem(Icons.card_travel, "Programmes", 2),
-              _drawerItem(Icons.luggage, "Voyages", 3),
-              _drawerItem(Icons.people, "Utilisateurs", 4),
+              // Entrees du menu
+              _drawerItem(Icons.dashboard, l10n.dashboard, 0),
+              _drawerItem(Icons.map, l10n.destinations, 1),
+              _drawerItem(Icons.card_travel, l10n.programs, 2),
+              _drawerItem(Icons.luggage, l10n.trips, 3),
+              _drawerItem(Icons.people, l10n.users, 4),
 
               const Divider(),
 
-              // Bouton de changement de thème
+              // Bouton de changement de theme
               Consumer<ThemeProvider>(
                 builder: (context, themeProvider, _) {
                   return SwitchListTile(
@@ -831,18 +857,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           ? Colors.amber
                           : Colors.teal,
                     ),
-                    title: const Text('Theme sombre'),
+                    title: Text(l10n.darkTheme),
                     value: themeProvider.isDarkMode,
                     onChanged: (_) => themeProvider.toggleTheme(),
                   );
                 },
               ),
 
+              // Retour a l'application
               ListTile(
                 leading: const Icon(Icons.home, color: Colors.teal),
-                title: const Text(
-                  "Retour a l'application",
-                  style: TextStyle(
+                title: Text(
+                  l10n.backToApp,
+                  style: const TextStyle(
                     color: Colors.teal,
                     fontWeight: FontWeight.bold,
                   ),
@@ -853,11 +880,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 },
               ),
 
+              // Deconnexion
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text(
-                  "Deconnexion",
-                  style: TextStyle(
+                title: Text(
+                  l10n.logout,
+                  style: const TextStyle(
                     color: Colors.red,
                     fontWeight: FontWeight.bold,
                   ),
@@ -868,8 +896,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
 
+        // --------------------------------------------------------
+        // Contenu de l'onglet actif
+        // --------------------------------------------------------
         body: pages[_selectedIndex],
 
+        // --------------------------------------------------------
+        // Barre de navigation inferieure
+        // --------------------------------------------------------
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: (index) => setState(() => _selectedIndex = index),
@@ -878,26 +912,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
           backgroundColor: Colors.white.withOpacity(0.9),
           type: BottomNavigationBarType.fixed,
           elevation: 0,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: "Stats",
+              icon: const Icon(Icons.dashboard),
+              label: l10n.dashboard,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.map),
-              label: "Destinations",
+              icon: const Icon(Icons.map),
+              label: l10n.destinations,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.card_travel),
-              label: "Programmes",
+              icon: const Icon(Icons.card_travel),
+              label: l10n.programs,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.luggage),
-              label: "Voyages",
+              icon: const Icon(Icons.luggage),
+              label: l10n.trips,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people),
-              label: "Users",
+              icon: const Icon(Icons.people),
+              label: l10n.users,
             ),
           ],
         ),
@@ -905,7 +939,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Élément de menu réutilisable pour le Drawer
+  // Element de menu reutilisable pour le Drawer
   Widget _drawerItem(IconData icon, String title, int index) {
     return ListTile(
       leading: Icon(icon, color: Colors.black87),
@@ -919,7 +953,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 }
 
 // ============================================================
-// Widget animé : petit avion qui oscille dans l'AppBar
+// Widget anime : petit avion qui oscille dans l'AppBar
 // ============================================================
 class _AnimatedPlane extends StatefulWidget {
   const _AnimatedPlane();
