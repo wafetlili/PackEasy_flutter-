@@ -1,7 +1,8 @@
 // ============================================================
 // main.dart
 // Point d'entrée de l'application PackEasy.
-// Initialise Firebase, le thème, la langue et les routes.
+// Initialise Firebase, le thème, la langue, les notifications
+// et les routes.
 // ============================================================
 import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter/material.dart';
@@ -27,11 +28,29 @@ import 'screens/destination_details_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'widgets/plane_route.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
+
+// Clé globale pour la navigation depuis les notifications
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await initializeDateFormatting('fr_FR', null);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialisation des notifications avec écouteur de clic
+  final notificationService = NotificationService();
+  await notificationService.init(
+    onNotificationTap: (payload) {
+      // Redirection selon le payload de la notification
+      if (payload == 'favoris') {
+        navigatorKey.currentState?.pushNamed('/home');
+      } else if (payload == 'reservation') {
+        navigatorKey.currentState?.pushNamed('/user_dashboard');
+      }
+    },
+  );
 
   // Chargement du thème
   final themeProvider = ThemeProvider();
@@ -71,6 +90,7 @@ class PackEasyApp extends StatelessWidget {
     final localeProvider = context.watch<LocaleProvider>();
 
     return MaterialApp(
+      navigatorKey: navigatorKey, // <-- Ajouté pour la navigation depuis les notifications
       title: 'PackEasy',
       debugShowCheckedModeBanner: false,
       scrollBehavior: AppScrollBehavior(),

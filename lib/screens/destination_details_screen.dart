@@ -1,18 +1,28 @@
+// ============================================================
+// destination_details_screen.dart
+// Affiche les détails d'une destination et permet de déclencher
+// une notification de confirmation de création de voyage.
+// ============================================================
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+
 import '../models/destination.dart';
 import '../providers/destination_provider.dart';
+import '../services/notification_service.dart';
 import '../widgets/destination_image.dart';
 
 class DestinationDetailsScreen extends StatefulWidget {
   const DestinationDetailsScreen({super.key});
 
   @override
-  State<DestinationDetailsScreen> createState() => _DestinationDetailsScreenState();
+  State<DestinationDetailsScreen> createState() =>
+      _DestinationDetailsScreenState();
 }
 
 class _DestinationDetailsScreenState extends State<DestinationDetailsScreen> {
-  bool _show = false; // déclenche les animations après l'arrivée de l'avion
+  bool _show = false;
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -24,13 +34,11 @@ class _DestinationDetailsScreenState extends State<DestinationDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Argument reçu via la route nommée
     final d = ModalRoute.of(context)!.settings.arguments as Destination;
     final provider = context.watch<DestinationProvider>();
     final isFav = provider.isFavorite(d.id);
     const titleStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
 
-    // Répartition indicative du budget
     final parts = [
       ('Transport', Icons.flight, 0.35, Colors.blue),
       ('Hébergement', Icons.hotel, 0.30, Colors.purple),
@@ -48,7 +56,15 @@ class _DestinationDetailsScreenState extends State<DestinationDetailsScreen> {
               IconButton(
                 icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
                     color: isFav ? Colors.red : null),
-                onPressed: () => provider.toggleFavorite(d.id),
+                onPressed: () {
+                  // Notification d'ajout aux favoris
+                  NotificationService().showNotification(
+  title: 'Réservation confirmée',
+  body: 'Votre voyage a bien été réservé.',
+  payload: 'reservation', // <-- Ouvre le UserDashboard
+);
+                  provider.toggleFavorite(d.id);
+                },
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -144,19 +160,29 @@ class _DestinationDetailsScreenState extends State<DestinationDetailsScreen> {
                           icon: icon,
                           color: color,
                           amount: (d.budget * pct).round(),
-                          value: _show ? pct : 0, // la barre se remplit
+                          value: _show ? pct : 0,
                         ),
 
                       const SizedBox(height: 28),
+
+                      // Bouton de création de voyage avec notification
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.add_location_alt),
                           label: const Text('Créer un voyage'),
-                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Voyage vers ${d.name} créé !')),
-                          ),
+                          onPressed: () {
+                            NotificationService().showNotification(
+                              title: 'Réservation confirmée',
+                              body: 'Votre voyage a bien été réservé.',
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Voyage vers ${d.name} créé !'),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -227,7 +253,8 @@ class _BudgetBar extends StatelessWidget {
               Icon(icon, color: color, size: 20),
               const SizedBox(width: 8),
               Expanded(child: Text(label)),
-              Text('$amount €', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('$amount €',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 6),

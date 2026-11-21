@@ -1,6 +1,11 @@
+// ============================================================
+// register_screen.dart
+// Écran d'inscription avec notification et redirection.
+// ============================================================
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/travel_background.dart';
+import '../services/notification_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,34 +23,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   String _selectedRole = 'user';
 
+  // ------------------------------------------------------------
+  // Inscription + Notification + Redirection
+  // ------------------------------------------------------------
   void _register() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
+
       final user = await _authService.signUp(
         _emailController.text.trim(),
         _passwordController.text.trim(),
-        role: _selectedRole,
       );
 
-      if (!mounted) return;
       setState(() => _isLoading = false);
 
       if (user != null) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inscription réussie !")));
+        // 1. Notification
+        NotificationService().showNotification(
+          title: 'Bienvenue !',
+          body: 'Votre compte a été créé avec succès.',
+        );
+
+        // 2. SnackBar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Inscription réussie ! Vous pouvez vous connecter.")),
+        );
+
+        // 3. REDIRECTION (vers l'accueil ou le login)
+        Navigator.pushReplacementNamed(context, '/home');
+        
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erreur d'inscription.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erreur lors de l'inscription. Email déjà utilisé ?")),
+        );
       }
     }
   }
 
+  // Style des champs
   InputDecoration _inputStyle(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, size: 20, color: Colors.teal.shade300),
       filled: true,
       fillColor: Colors.white.withOpacity(0.4),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide.none,
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       labelStyle: const TextStyle(color: Colors.black54),
       floatingLabelStyle: const TextStyle(color: Colors.teal),
@@ -61,7 +86,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.black87),
-          title: const Text("Inscription", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+          title: const Text(
+            "Inscription",
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+          ),
         ),
         body: Center(
           child: SingleChildScrollView(
@@ -73,14 +101,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 color: Colors.white.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, spreadRadius: 5)],
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, spreadRadius: 5),
+                ],
               ),
               child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("Créer un compte", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal)),
+                    const Text(
+                      "Créer un compte",
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal),
+                    ),
                     const SizedBox(height: 32),
 
                     TextFormField(
@@ -104,7 +137,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                   
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -116,7 +148,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
-                        child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("S'inscrire", style: TextStyle(fontSize: 16)),
+                        child: _isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                          : const Text("S'inscrire", style: TextStyle(fontSize: 16)),
                       ),
                     ),
                   ],

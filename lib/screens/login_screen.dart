@@ -1,8 +1,13 @@
+// ============================================================
+// login_screen.dart
+// Écran de connexion avec notification et redirection.
+// ============================================================
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../widgets/travel_background.dart';
+import '../services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,44 +31,53 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // ------------------------------------------------------------
+  // Connexion + Notification + Redirection
+  // ------------------------------------------------------------
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() { _isLoading = true; _errorMessage = null; });
-
-    try {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      
       final user = await _authService.signIn(
-        _emailController.text.trim(), _passwordController.text.trim());
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
       
-      if (!mounted) return;
-      if (user == null) {
-        setState(() { _isLoading = false; _errorMessage = "Email ou mot de passe incorrect."; });
-        return;
-      }
-
-      final role = await _authService.getUserRole(user.uid);
-      if (!mounted) return;
       setState(() => _isLoading = false);
-      
-      if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin_dashboard');
+
+      if (user != null) {
+        // 1. Notification
+        NotificationService().showNotification(
+          title: 'Connexion réussie',
+          body: 'Ravi de vous revoir sur PackEasy !',
+        );
+
+        // 2. SnackBar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Bienvenue sur PackEasy !")),
+        );
+
+        // 3. REDIRECTION (C'est ce qui manquait !)
+        Navigator.pushReplacementNamed(context, '/home'); 
+        
       } else {
-        Navigator.pushReplacementNamed(context, '/user_dashboard');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Email ou mot de passe incorrect")),
+        );
       }
-    } catch (e) {
-      if (mounted) setState(() { _isLoading = false; _errorMessage = "Erreur de connexion."; });
     }
   }
 
-  // Le design de tes champs de texte "Fins"
+  // Style des champs
   InputDecoration _inputStyle(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, size: 20, color: Colors.teal.shade300),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.4), // Fond très transparent
+      fillColor: Colors.white.withOpacity(0.4),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30), // Bords très arrondis
-        borderSide: BorderSide.none, // Pas de bordure dure
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide.none,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       labelStyle: const TextStyle(color: Colors.black54),
@@ -80,20 +94,24 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.black87),
-          title: const Text("Connexion", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+          title: const Text(
+            "Connexion",
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+          ),
         ),
         body: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 400), // Un peu plus étroit = plus fin
+              constraints: const BoxConstraints(maxWidth: 400),
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                // Carte encore plus transparente pour laisser voir l'avion
-                color: Colors.white.withOpacity(0.6), 
+                color: Colors.white.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5), // Bordure effet verre
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, spreadRadius: 5)],
+                border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, spreadRadius: 5),
+                ],
               ),
               child: Form(
                 key: _formKey,
@@ -102,7 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Icon(Icons.flight_takeoff, size: 50, color: Colors.teal),
                     const SizedBox(height: 16),
-                    const Text("Bon retour !", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal)),
+                    const Text(
+                      "Bon retour !",
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal),
+                    ),
                     const SizedBox(height: 32),
 
                     TextFormField(
@@ -117,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: _inputStyle("Mot de passe", Icons.lock_outline),
                       validator: (v) => v!.length < 6 ? "Min 6 caractères" : null,
                     ),
-                    
+
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -143,13 +164,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
-                        child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("Se connecter", style: TextStyle(fontSize: 16)),
+                        child: _isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                          : const Text("Se connecter", style: TextStyle(fontSize: 16)),
                       ),
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: _isLoading ? null : () async {
-                        // ... (ta logique Google)
+                        // Logique Google
                       },
                       icon: const Icon(Icons.g_mobiledata, size: 28),
                       label: const Text("Continuer avec Google"),
