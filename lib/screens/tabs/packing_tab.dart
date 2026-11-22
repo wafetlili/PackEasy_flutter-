@@ -1,31 +1,62 @@
+// ============================================================
+// packing_tab.dart
+// Onglet "Valise" : liste d'objets à emporter (Firestore).
+// Glisser vers le côté pour supprimer, cocher pour préparer.
+// ============================================================
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/trip_provider.dart';
+import '../../utils/l10n_ext.dart';
+import '../../utils/labels.dart';
+import '../../utils/ui.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/state_views.dart';
 
 class PackingTab extends StatelessWidget {
   const PackingTab({super.key});
 
-  static const suggestions = [
-    'Parapluie',
-    'Maillot de bain',
-    'Adaptateur de prise',
-    'Lunettes de soleil',
-    'Crème solaire',
-    'Médicaments',
-    'Écouteurs',
-    'Carte bancaire',
-  ];
+  // Suggestions rapides (traduites selon la langue)
+  List<String> _suggestions(AppLocalizations l) => [
+        l.sugPassport,
+        l.sugCharger,
+        l.sugToiletries,
+        l.sugClothes,
+        l.sugUmbrella,
+        l.sugSwimsuit,
+        l.sugAdapter,
+        l.sugSunglasses,
+        l.sugSunscreen,
+        l.sugMedicine,
+        l.sugHeadphones,
+        l.sugBankCard,
+      ];
+
+  // Exécute une action Firestore et affiche l'erreur éventuelle
+  Future<void> _run(BuildContext context, Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (e) {
+      if (context.mounted) {
+        showMessage(context, errorMessage(context.l10n, e), error: true);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final t = context.watch<TripProvider>();
+
+    if (t.isLoading) return LoadingView(message: l.loading);
+
     final items = t.items;
     final total = items.length;
     final done = t.packedCount;
     final ratio = total == 0 ? 0.0 : done / total;
     final ready = total > 0 && done == total;
-    final missing = suggestions.where((s) => !t.hasItem(s)).take(5).toList();
+    final missing = _suggestions(l).where((s) => !t.hasItem(s)).take(5).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
@@ -40,7 +71,7 @@ class PackingTab extends StatelessWidget {
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 400),
                   child: Text(
-                    ready ? 'Prêt au décollage ! ✈️' : '$done / $total objets préparés',
+                    ready ? l.readyToFly : l.packedCount(done, total),
                     key: ValueKey(ready),
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
@@ -74,7 +105,7 @@ class PackingTab extends StatelessWidget {
                 for (final s in missing)
                   ActionChip(
                     label: Text('+ $s'),
-                    onPressed: () => context.read<TripProvider>().addItem(s),
+                    onPressed: () => _run(context, () => t.addItem(s)),
                   ),
               ],
             ),
@@ -82,18 +113,21 @@ class PackingTab extends StatelessWidget {
         const SizedBox(height: 12),
 
         if (items.isEmpty)
-          const GlassCard(child: Center(child: Text('Votre valise est vide'))),
+          SizedBox(
+            height: 200,
+            child: EmptyView(icon: Icons.luggage, title: l.bagEmpty),
+          ),
 
-        // Liste (glisser vers la gauche pour supprimer)
+        // Liste (glisser pour supprimer)
         for (final item in items)
           Dismissible(
-            key: ValueKey(item),
+            key: ValueKey(item.id),
             direction: DismissDirection.endToStart,
-            onDismissed: (_) => context.read<TripProvider>().removeItem(item),
+            onDismissed: (_) => _run(context, () => t.removeItem(item)),
             background: Container(
               margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.only(right: 20),
-              alignment: Alignment.centerRight,
+              padding: const EdgeInsetsDirectional.only(end: 20),
+              alignment: AlignmentDirectional.centerEnd,
               decoration: BoxDecoration(
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(22),
@@ -104,7 +138,7 @@ class PackingTab extends StatelessWidget {
               padding: EdgeInsets.zero,
               child: CheckboxListTile(
                 value: item.checked,
-                onChanged: (_) => context.read<TripProvider>().toggleItem(item),
+                onChanged: (_) => _run(context, () => t.toggleItem(item)),
                 controlAffinity: ListTileControlAffinity.leading,
                 title: AnimatedOpacity(
                   opacity: item.checked ? 0.5 : 1,
@@ -126,40 +160,44 @@ class PackingTab extends StatelessWidget {
 
 // ---------- Dialogue : ajouter un objet ----------
 void showAddItemDialog(BuildContext context) {
-  final key = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
   final controller = TextEditingController();
+  final provider = context.read<TripProvider>();
+  final l = context.l10n;
 
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Ajouter un objet'),
+      title: Text(l.addItem),
       content: Form(
-        key: key,
+        key: formKey,
         child: TextFormField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Ex : Parapluie'),
+          decoration: InputDecoration(hintText: l.itemHint),
           validator: (v) {
-            if (v == null || v.trim().isEmpty) return 'Entrez un nom';
-            if (context.read<TripProvider>().hasItem(v.trim())) {
-              return 'Cet objet existe déjà';
-            }
+            if (v == null || v.trim().isEmpty) return l.errorRequired;
+            if (provider.hasItem(v.trim())) return l.errorItemExists;
             return null;
           },
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.cancel)),
         FilledButton(
-          onPressed: () {
-            if (key.currentState!.validate()) {
-              context.read<TripProvider>().addItem(controller.text.trim());
-              Navigator.pop(ctx);
+          onPressed: () async {
+            if (!formKey.currentState!.validate()) return;
+            final navigator = Navigator.of(ctx);
+            try {
+              await provider.addItem(controller.text.trim());
+              navigator.pop();
+            } catch (e) {
+              if (ctx.mounted) showMessage(ctx, errorMessage(l, e), error: true);
             }
           },
-          child: const Text('Ajouter'),
+          child: Text(l.add),
         ),
       ],
     ),
-  );
+  ).then((_) => controller.dispose());
 }

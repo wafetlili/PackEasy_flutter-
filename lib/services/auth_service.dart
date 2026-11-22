@@ -1,150 +1,162 @@
+// ============================================================
+// auth_service.dart
+// Authentification Firebase : email / mot de passe et Google.
+// Les erreurs ne sont plus cachées : elles sont relancées pour
+// que l'écran affiche un message clair à l'utilisateur.
+// ============================================================
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+// Erreur spéciale : l'utilisateur a fermé la fenêtre Google
+class AuthCancelledException implements Exception {}
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // ✅ AJOUT : identifiants du super admin (change-les)
+  // Identifiants du super admin (à changer)
   static const String adminEmail = 'admin@packeasy.com';
   static const String adminPassword = 'Admin@12345'; // minimum 6 caractères
 
-  // Variable statique pour éviter l'erreur "init() already called" sur mobile
+  // Identifiant client "Web" du projet Firebase (fichier google-services.json,
+  // client_type 3). Il est nécessaire pour Google Sign-In sur Android.
+  static const String _serverClientId =
+      '961163650621-nudncsi02i8jt9n41222l6i5bk99ksg9.apps.googleusercontent.com';
+
+  // Google Sign-In ne doit être initialisé qu'une seule fois
   static bool _googleInitialized = false;
 
-  // Initialisation conditionnelle de Google Sign-In (uniquement sur mobile)
   Future<void> _initGoogle() async {
     if (kIsWeb || _googleInitialized) return;
-    await GoogleSignIn.instance.initialize();
+    await GoogleSignIn.instance.initialize(serverClientId: _serverClientId);
     _googleInitialized = true;
   }
 
-  // ✅ AJOUT : création du super admin (à appeler UNE SEULE FOIS)
+  // ------------------------------------------------------------
+  // Création du super admin (à appeler UNE SEULE FOIS)
+  // ------------------------------------------------------------
   Future<void> createSuperAdmin() async {
     try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
+      final result = await _auth.createUserWithEmailAndPassword(
         email: adminEmail,
         password: adminPassword,
       );
-
       await _firestore.collection('users').doc(result.user!.uid).set({
         'email': adminEmail,
         'role': 'admin',
         'createdAt': FieldValue.serverTimestamp(),
       });
-
-      await _auth.signOut(); // on se déconnecte après la création
-      debugPrint('Super admin créé avec succès');
+      await _auth.signOut();
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        debugPrint('Le super admin existe déjà');
-      } else {
-        debugPrint('Erreur création admin: ${e.message}');
+      debugPrint('Création admin : ${e.code}');
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Crée le document users/{uid} s'il n'existe pas encore
+  // ------------------------------------------------------------
+  Future<void> _ensureUserDoc(User user, {String? name}) async {
+    final ref = _firestore.collection('users').doc(user.uid);
+    final doc = await ref.get();
+    if (!doc.exists) {
+      await ref.set({
+        'email': user.email,
+        'name': name ?? user.displayName ?? '',
+        'role': 'user',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  // --- 1. INSCRIPTION (email + mot de passe) ---
+  Future<User> signUp(String email, String password, {String name = ''}) async {
+    final result = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    final user = result.user!;
+    if (name.isNotEmpty) await user.updateDisplayName(name);
+    await _ensureUserDoc(user, name: name);
+    return user;
+  }
+
+  // --- 2. CONNEXION (email + mot de passe) ---
+  Future<User> signIn(String email, String password) async {
+    final result = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    return result.user!;
+  }
+
+  // --- 3. CONNEXION GOOGLE ---
+  Future<User> signInWithGoogle() async {
+    UserCredential result;
+
+    if (kIsWeb) {
+      // Sur le web : fenêtre popup Google
+      result = await _auth.signInWithPopup(GoogleAuthProvider());
+    } else {
+      // Sur mobile : sélection du compte puis échange du jeton avec Firebase
+      await _initGoogle();
+      try {
+        final googleUser = await GoogleSignIn.instance.authenticate();
+        final credential = GoogleAuthProvider.credential(
+          idToken: googleUser.authentication.idToken,
+        );
+        result = await _auth.signInWithCredential(credential);
+      } on GoogleSignInException catch (e) {
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          throw AuthCancelledException();
+        }
+        rethrow;
       }
-    } catch (e) {
-      debugPrint('Erreur création admin: $e');
     }
+
+    final user = result.user!;
+    await _ensureUserDoc(user);
+    return user;
   }
 
-  // --- 1. INSCRIPTION ---
-  Future<User?> signUp(String email, String password, {String role = 'user'}) async {
-    try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (result.user != null) {
-        await _firestore.collection('users').doc(result.user!.uid).set({
-          'email': email,
-          'role': role, // 'user' ou 'admin'
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-      return result.user;
-    } catch (e) {
-      debugPrint("Erreur d'inscription: $e");
-      return null;
-    }
-  }
-
-  // --- 2. CONNEXION EMAIL ---
-  Future<User?> signIn(String email, String password) async {
-    try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return result.user;
-    } catch (e) {
-      debugPrint("Erreur de connexion: $e");
-      return null;
-    }
-  }
-
-  // --- 3. RÉCUPÉRER LE RÔLE --- ✅ CORRIGÉ (plus de plantage si 'role' est absent)
+  // --- 4. RÔLE DE L'UTILISATEUR ('user' ou 'admin') ---
   Future<String> getUserRole(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-      final data = doc.data() as Map<String, dynamic>?;
-      return data?['role'] ?? 'user';
+      final doc = await _firestore.collection('users').doc(uid).get();
+      return doc.data()?['role'] ?? 'user';
     } catch (e) {
-      debugPrint("Erreur lors de la récupération du rôle: $e");
+      debugPrint('Erreur lecture du rôle : $e');
       return 'user';
     }
   }
 
-  // --- 4. CONNEXION GOOGLE ---
-  Future<User?> signInWithGoogle() async {
-    try {
-      if (kIsWeb) {
-        GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        UserCredential result = await _auth.signInWithPopup(googleProvider);
-
-        if (result.additionalUserInfo?.isNewUser ?? false) {
-          await _firestore.collection('users').doc(result.user!.uid).set({
-            'email': result.user!.email,
-            'role': 'user',
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-        return result.user;
-      } else {
-        await _initGoogle();
-        final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
-        final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-        final credential = GoogleAuthProvider.credential(
-          idToken: googleAuth.idToken,
-        );
-
-        UserCredential result = await _auth.signInWithCredential(credential);
-        return result.user;
-      }
-    } catch (e) {
-      debugPrint("Erreur Google Sign-In: $e");
-      return null;
-    }
+  // --- 5. MODIFIER LE NOM DU PROFIL ---
+  Future<void> updateName(String name) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.updateDisplayName(name);
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .set({'name': name}, SetOptions(merge: true));
   }
 
-  // --- 5. DÉCONNEXION ---
+  // --- 6. DÉCONNEXION ---
   Future<void> signOut() async {
     if (!kIsWeb) {
-      await GoogleSignIn.instance.signOut();
+      try {
+        await _initGoogle();
+        await GoogleSignIn.instance.signOut();
+      } catch (e) {
+        debugPrint('Déconnexion Google : $e');
+      }
     }
     await _auth.signOut();
   }
 
-  // --- 6. RÉINITIALISATION DU MOT DE PASSE ---
-  Future<bool> resetPassword(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-      return true;
-    } catch (e) {
-      debugPrint("Erreur reset password: $e");
-      return false;
-    }
+  // --- 7. RÉINITIALISATION DU MOT DE PASSE ---
+  Future<void> resetPassword(String email) {
+    return _auth.sendPasswordResetEmail(email: email);
   }
 }

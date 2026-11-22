@@ -1,3 +1,9 @@
+// ============================================================
+// destination_image.dart
+// Image d'une destination (chargée depuis Internet).
+// Affiche un dégradé avec le drapeau pendant le chargement,
+// ou si l'image est absente ou en erreur.
+// ============================================================
 import 'package:flutter/material.dart';
 import '../models/destination.dart';
 
@@ -26,6 +32,9 @@ class DestinationImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pas d'adresse d'image : on affiche directement le dégradé
+    if (destination.image.isEmpty) return _placeholder();
+
     return Image.network(
       destination.image,
       height: height,

@@ -1,16 +1,27 @@
+// ============================================================
+// budget_tab.dart
+// Onglet "Budget" : budget du prochain voyage, dépenses par
+// catégorie et liste des dépenses (Firestore, temps réel).
+// ============================================================
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/trip.dart';
 import '../../providers/trip_provider.dart';
+import '../../utils/l10n_ext.dart';
+import '../../utils/labels.dart';
+import '../../utils/ui.dart';
+import '../../utils/validators.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/state_views.dart';
 
+// Catégories de dépenses : code -> (icône, couleur)
 const Map<String, (IconData, Color)> expenseCategories = {
-  'Transport': (Icons.flight, Colors.blue),
-  'Hébergement': (Icons.hotel, Colors.purple),
-  'Nourriture': (Icons.restaurant, Colors.orange),
-  'Activités': (Icons.local_activity, Colors.green),
-  'Autres': (Icons.more_horiz, Colors.grey),
+  'transport': (Icons.flight, Colors.blue),
+  'lodging': (Icons.hotel, Colors.purple),
+  'food': (Icons.restaurant, Colors.orange),
+  'activities': (Icons.local_activity, Colors.green),
+  'other': (Icons.more_horiz, Colors.grey),
 };
 
 class BudgetTab extends StatelessWidget {
@@ -18,40 +29,27 @@ class BudgetTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final t = context.watch<TripProvider>();
     final trip = t.nextTrip;
 
+    if (t.isLoading) return LoadingView(message: l.loading);
+
     // Pas de voyage : état vide
     if (trip == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: GlassCard(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.account_balance_wallet, size: 56),
-                SizedBox(height: 10),
-                Text("Créez d'abord un voyage",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 6),
-                Text('Le budget est lié à votre prochain voyage.',
-                    textAlign: TextAlign.center),
-              ],
-            ),
-          ),
-        ),
+      return EmptyView(
+        icon: Icons.account_balance_wallet,
+        title: l.createFirstTrip,
+        subtitle: l.budgetLinked,
       );
     }
 
-    final spent = t.totalSpent;
+    final spent = t.spentOn(trip.id);
     final budget = trip.budget;
     final left = budget - spent;
-    final ratio = (spent / budget).clamp(0.0, 1.0);
+    final ratio = budget == 0 ? 0.0 : (spent / budget).clamp(0.0, 1.0);
     final color = ratio > 0.9 ? Colors.red : (ratio > 0.6 ? Colors.orange : Colors.green);
-    final fmt = DateFormat('d MMM', 'fr_FR');
-    final expenses = t.expenses;
+    final expenses = t.expensesOf(trip.id);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
@@ -96,12 +94,10 @@ class BudgetTab extends StatelessWidget {
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text('Budget : $budget €'),
-                      Text('Dépensé : ${spent.round()} €'),
+                      Text(l.budgetOf(budget)),
+                      Text(l.spentOf(spent.round())),
                       Text(
-                        left >= 0
-                            ? 'Reste : ${left.round()} €'
-                            : 'Dépassement : ${(-left).round()} €',
+                        left >= 0 ? l.remaining(left.round()) : l.overBudget((-left).round()),
                         style: TextStyle(color: color, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -113,10 +109,10 @@ class BudgetTab extends StatelessWidget {
         ),
 
         // Barres par catégorie
-        const Appear(
+        Appear(
           index: 1,
-          child: Text('Par catégorie',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          child: Text(l.byCategory,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(height: 10),
         Appear(
@@ -126,10 +122,10 @@ class BudgetTab extends StatelessWidget {
               children: [
                 for (final e in expenseCategories.entries)
                   _CategoryBar(
-                    label: e.key,
+                    label: expenseLabel(l, e.key),
                     icon: e.value.$1,
                     color: e.value.$2,
-                    amount: t.spentIn(e.key),
+                    amount: t.spentIn(trip.id, e.key),
                     budget: budget,
                   ),
               ],
@@ -139,27 +135,26 @@ class BudgetTab extends StatelessWidget {
 
         // Liste des dépenses
         const SizedBox(height: 6),
-        const Appear(
+        Appear(
           index: 3,
-          child: Text('Dépenses',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          child: Text(l.expenses,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(height: 10),
         if (expenses.isEmpty)
-          const GlassCard(
-            child: Center(child: Text('Aucune dépense pour le moment')),
-          ),
+          GlassCard(child: Center(child: Text(l.noExpense))),
         for (final e in expenses)
           GlassCard(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: expenseCategories[e.category]!.$2.withAlpha(40),
-                child: Icon(expenseCategories[e.category]!.$1,
-                    color: expenseCategories[e.category]!.$2),
+                backgroundColor: expenseCategories[e.category]?.$2.withAlpha(40),
+                child: Icon(expenseCategories[e.category]?.$1 ?? Icons.more_horiz,
+                    color: expenseCategories[e.category]?.$2),
               ),
               title: Text(e.label),
-              subtitle: Text('${e.category} • ${fmt.format(e.date)}'),
+              subtitle: Text(
+                  '${expenseLabel(l, e.category)} • ${formatDate(context, e.date, pattern: 'd MMM')}'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -167,7 +162,15 @@ class BudgetTab extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
-                    onPressed: () => context.read<TripProvider>().removeExpense(e.id),
+                    onPressed: () async {
+                      try {
+                        await context.read<TripProvider>().removeExpense(e.id);
+                      } catch (err) {
+                        if (context.mounted) {
+                          showMessage(context, errorMessage(l, err), error: true);
+                        }
+                      }
+                    },
                   ),
                 ],
               ),
@@ -195,7 +198,7 @@ class _CategoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ratio = (amount / budget).clamp(0.0, 1.0);
+    final ratio = budget == 0 ? 0.0 : (amount / budget).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -231,11 +234,11 @@ class _CategoryBar extends StatelessWidget {
 }
 
 // ---------- Formulaire : ajouter une dépense ----------
-void showAddExpenseSheet(BuildContext context) {
-  if (context.read<TripProvider>().nextTrip == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Créez d'abord un voyage")),
-    );
+// [trip] : voyage concerné (par défaut : le prochain voyage)
+void showAddExpenseSheet(BuildContext context, {Trip? trip}) {
+  final target = trip ?? context.read<TripProvider>().nextTrip;
+  if (target == null) {
+    showMessage(context, context.l10n.createFirstTrip);
     return;
   }
   showModalBottomSheet(
@@ -244,13 +247,14 @@ void showAddExpenseSheet(BuildContext context) {
     showDragHandle: true,
     builder: (_) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: const _ExpenseForm(),
+      child: _ExpenseForm(trip: target),
     ),
   );
 }
 
 class _ExpenseForm extends StatefulWidget {
-  const _ExpenseForm();
+  final Trip trip;
+  const _ExpenseForm({required this.trip});
 
   @override
   State<_ExpenseForm> createState() => _ExpenseFormState();
@@ -260,7 +264,8 @@ class _ExpenseFormState extends State<_ExpenseForm> {
   final _formKey = GlobalKey<FormState>();
   final _label = TextEditingController();
   final _amount = TextEditingController();
-  String _category = 'Transport';
+  String _category = 'transport';
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -269,23 +274,37 @@ class _ExpenseFormState extends State<_ExpenseForm> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
+    final l = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
-    context.read<TripProvider>().addExpense(Expense(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
-          label: _label.text.trim(),
-          category: _category,
-          amount: double.parse(_amount.text.trim().replaceAll(',', '.')),
-          date: DateTime.now(),
-        ));
-    Navigator.pop(context);
-    messenger.showSnackBar(const SnackBar(content: Text('Dépense ajoutée ✅')));
+    final navigator = Navigator.of(context);
+
+    setState(() => _saving = true);
+    try {
+      await context.read<TripProvider>().addExpense(Expense(
+            id: '',
+            tripId: widget.trip.id,
+            label: _label.text.trim(),
+            category: _category,
+            amount: double.parse(_amount.text.trim().replaceAll(',', '.')),
+            date: DateTime.now(),
+          ));
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text(l.expenseAdded)));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        showMessage(context, errorMessage(l, e), error: true);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
+    final v = Validators(l);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Form(
@@ -294,51 +313,55 @@ class _ExpenseFormState extends State<_ExpenseForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Ajouter une dépense',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(l.addExpense,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             TextFormField(
               controller: _label,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                prefixIcon: Icon(Icons.edit),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.description,
+                prefixIcon: const Icon(Icons.edit),
+                border: const OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Entrez une description' : null,
+              validator: v.required,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _amount,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Montant (€)',
-                prefixIcon: Icon(Icons.euro),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.amountEuro,
+                prefixIcon: const Icon(Icons.euro),
+                border: const OutlineInputBorder(),
               ),
-              validator: (v) {
-                final n = double.tryParse((v ?? '').trim().replaceAll(',', '.'));
-                return (n == null || n <= 0) ? 'Entrez un montant valide (> 0)' : null;
-              },
+              validator: (value) => v.positiveNumber(value, message: l.errorAmount),
             ),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
-              value: _category,
-              decoration: const InputDecoration(
-                labelText: 'Catégorie',
-                prefixIcon: Icon(Icons.category),
-                border: OutlineInputBorder(),
+              initialValue: _category,
+              decoration: InputDecoration(
+                labelText: l.category,
+                prefixIcon: const Icon(Icons.category),
+                border: const OutlineInputBorder(),
               ),
               items: expenseCategories.keys
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .map((c) => DropdownMenuItem(value: c, child: Text(expenseLabel(l, c))))
                   .toList(),
-              onChanged: (v) => setState(() => _category = v!),
+              onChanged: (value) => setState(() => _category = value!),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 50,
-              child: FilledButton(onPressed: _submit, child: const Text('Ajouter')),
+              child: FilledButton(
+                onPressed: _saving ? null : _submit,
+                child: _saving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(l.add),
+              ),
             ),
           ],
         ),

@@ -42,5 +42,382 @@
   "dashboard": "Tableau de bord",
   "users": "Utilisateurs",
   "upcomingDepartures": "Départs imminents",
-  "noUpcomingTrip": "Aucun voyage à venir."
+  "noUpcomingTrip": "Aucun voyage à venir.",
+  "retry": "Réessayer",
+  "errorGeneric": "Une erreur est survenue. Réessayez.",
+  "errorLoading": "Impossible de charger les données",
+  "errorNetwork": "Vérifiez votre connexion internet",
+  "add": "Ajouter",
+  "create": "Créer",
+  "close": "Fermer",
+  "deleted": "Supprimé",
+  "saved": "Enregistré",
+  "loginRequired": "Connectez-vous pour continuer",
+  "view": "Voir",
+  "guest": "Invité",
+  "errorRequired": "Ce champ est obligatoire",
+  "errorNumber": "Entrez un nombre valide",
+  "errorPositive": "Entrez une valeur supérieure à 0",
+  "errorMinLength": "Minimum {min} caractères",
+  "@errorMinLength": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "errorUrl": "URL invalide (commencez par http ou https)",
+  "errorDate": "Date invalide (JJ/MM/AAAA)",
+  "errorDateOrder": "La date de fin doit être après la date de début",
+  "errorAmount": "Entrez un montant valide (supérieur à 0)",
+  "errorBudget": "Entrez un budget valide (nombre supérieur à 0)",
+  "errorDestination": "Entrez une destination (2 caractères minimum)",
+  "errorName": "Entrez votre nom (2 caractères minimum)",
+  "errorItemExists": "Cet objet existe déjà",
+  "authInvalidCredential": "Email ou mot de passe incorrect",
+  "authUserNotFound": "Aucun compte ne correspond à cet email",
+  "authEmailInUse": "Cet email est déjà utilisé",
+  "authWeakPassword": "Mot de passe trop faible",
+  "authNetwork": "Problème de connexion internet",
+  "authTooMany": "Trop de tentatives, réessayez plus tard",
+  "authCancelled": "Connexion Google annulée",
+  "authUnknown": "Échec de l'authentification",
+  "loginSuccess": "Connexion réussie",
+  "welcomeBack": "Ravi de vous revoir sur PackEasy !",
+  "registerSuccess": "Compte créé",
+  "welcomeNew": "Bienvenue ! Votre compte a été créé avec succès.",
+  "loginTitle": "Bon retour !",
+  "createAccount": "Créer un compte",
+  "continueGoogle": "Continuer avec Google",
+  "noAccount": "Pas de compte ? S'inscrire",
+  "forgotPasswordTitle": "Mot de passe oublié",
+  "resetTitle": "Réinitialisation",
+  "resetHint": "Entrez votre email pour recevoir un lien.",
+  "sendLink": "Envoyer le lien",
+  "resetSent": "Email envoyé, vérifiez votre boîte de réception",
+  "onbTitle": "Votre guide de voyage ultime.",
+  "onbSubtitle": "Trouvez la destination adaptée à votre budget, planifiez vos visites et préparez vos bagages.",
+  "start": "Commencer",
+  "destinationsCount": "{count} destinations - 5 continents",
+  "@destinationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phrase1": "Où voulez-vous aller ?",
+  "phrase2": "Plages de rêve",
+  "phrase3": "Villes inoubliables",
+  "phrase4": "Aventures nature",
+  "phrase5": "Culture et histoire",
+  "changeTheme": "Changer de thème",
+  "all": "Tous",
+  "africa": "Afrique",
+  "europe": "Europe",
+  "asia": "Asie",
+  "america": "Amérique",
+  "oceania": "Océanie",
+  "beach": "Plage",
+  "culture": "Culture",
+  "nature": "Nature",
+  "city": "Ville",
+  "practicalInfo": "Infos pratiques",
+  "bestSeason": "Meilleure saison",
+  "avgTemp": "Température moyenne",
+  "languages": "Langues",
+  "currency": "Monnaie",
+  "mustSee": "À ne pas manquer",
+  "budgetIndicative": "Budget indicatif : ~{budget} € / personne",
+  "@budgetIndicative": {
+    "placeholders": {
+      "budget": {
+        "type": "int"
+      }
+    }
+  },
+  "createTrip": "Créer un voyage",
+  "tripCreated": "Voyage vers {destination} créé",
+  "@tripCreated": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "reservationConfirmed": "Réservation confirmée",
+  "reservationBody": "Votre voyage vers {destination} a bien été réservé.",
+  "@reservationBody": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToFavorites": "{name} ajouté aux favoris",
+  "@addedToFavorites": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removedFromFavorites": "{name} retiré des favoris",
+  "@removedFromFavorites": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "liveWeather": "Météo en direct",
+  "weatherUnavailable": "Météo indisponible pour cette destination",
+  "wind": "Vent : {speed} km/h",
+  "@wind": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherClear": "Ciel dégagé",
+  "weatherCloudy": "Nuageux",
+  "weatherFog": "Brouillard",
+  "weatherRain": "Pluie",
+  "weatherSnow": "Neige",
+  "weatherStorm": "Orage",
+  "mySpace": "Mon espace voyageur",
+  "myTrips": "Mes voyages",
+  "budget": "Budget",
+  "myBag": "Ma valise",
+  "exploreDestinations": "Explorer les destinations",
+  "hello": "Bonjour, {name}",
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "readyAdventure": "Prêt pour votre prochaine aventure ?",
+  "noTripPlanned": "Aucun voyage prévu",
+  "noTripHint": "Explorez les destinations ou créez votre premier voyage.",
+  "explore": "Explorer",
+  "newTrip": "Nouveau voyage",
+  "expense": "Dépense",
+  "item": "Objet",
+  "tripsLabel": "Voyages",
+  "spent": "Dépensé",
+  "bag": "Valise",
+  "quickAccess": "Accès rapide",
+  "daysLeft": "J-{days}",
+  "@daysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "today": "Aujourd'hui",
+  "ongoing": "En cours",
+  "daysAndBudget": "{days} jours • Budget {budget} €",
+  "@daysAndBudget": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "budget": {
+        "type": "int"
+      }
+    }
+  },
+  "upcoming": "À venir",
+  "noUpcomingTrips": "Aucun voyage à venir",
+  "noPastTrips": "Aucun voyage passé",
+  "destination": "Destination",
+  "budgetEuro": "Budget (€)",
+  "chooseDates": "Choisir les dates",
+  "chooseDatesError": "Choisissez les dates du voyage",
+  "tripDeleted": "Voyage vers {destination} supprimé",
+  "@tripDeleted": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "createFirstTrip": "Créez d'abord un voyage",
+  "budgetLinked": "Le budget est lié à votre prochain voyage.",
+  "budgetOf": "Budget : {amount} €",
+  "@budgetOf": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "spentOf": "Dépensé : {amount} €",
+  "@spentOf": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "remaining": "Reste : {amount} €",
+  "@remaining": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "overBudget": "Dépassement : {amount} €",
+  "@overBudget": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "byCategory": "Par catégorie",
+  "expenses": "Dépenses",
+  "noExpense": "Aucune dépense pour le moment",
+  "addExpense": "Ajouter une dépense",
+  "description": "Description",
+  "amountEuro": "Montant (€)",
+  "category": "Catégorie",
+  "expenseAdded": "Dépense ajoutée",
+  "catTransport": "Transport",
+  "catLodging": "Hébergement",
+  "catFood": "Nourriture",
+  "catActivities": "Activités",
+  "catOther": "Autres",
+  "packedCount": "{done} / {total} objets préparés",
+  "@packedCount": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "readyToFly": "Prêt au décollage !",
+  "bagEmpty": "Votre valise est vide",
+  "addItem": "Ajouter un objet",
+  "itemHint": "Ex : Parapluie",
+  "sugPassport": "Passeport",
+  "sugCharger": "Chargeur de téléphone",
+  "sugToiletries": "Trousse de toilette",
+  "sugClothes": "Vêtements",
+  "sugUmbrella": "Parapluie",
+  "sugSwimsuit": "Maillot de bain",
+  "sugAdapter": "Adaptateur de prise",
+  "sugSunglasses": "Lunettes de soleil",
+  "sugSunscreen": "Crème solaire",
+  "sugMedicine": "Médicaments",
+  "sugHeadphones": "Écouteurs",
+  "sugBankCard": "Carte bancaire",
+  "tripDetails": "Détails du voyage",
+  "dates": "Dates",
+  "durationDays": "{days} jours",
+  "@durationDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "tripExpenses": "Dépenses du voyage",
+  "deleteTrip": "Supprimer le voyage",
+  "confirmDelete": "Confirmer la suppression ?",
+  "tripFromTo": "Du {start} au {end}",
+  "@tripFromTo": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "fullName": "Nom complet",
+  "profileUpdated": "Profil mis à jour",
+  "role": "Rôle",
+  "appearance": "Apparence",
+  "themeLabel": "Thème",
+  "themeSystem": "Système",
+  "themeLight": "Clair",
+  "themeDark": "Sombre",
+  "notifications": "Notifications",
+  "offersNotif": "Recevoir les offres et actualités",
+  "testNotification": "Tester une notification",
+  "testNotifBody": "Appuyez ici pour ouvrir vos voyages.",
+  "about": "À propos",
+  "aboutText": "PackEasy vous aide à choisir, planifier et préparer vos voyages.",
+  "version": "Version",
+  "noFavorites": "Aucun favori pour le moment",
+  "noFavoritesHint": "Appuyez sur le cœur d'une destination pour l'ajouter ici.",
+  "currencyConverter": "Convertisseur de devises",
+  "amount": "Montant",
+  "baseCurrency": "Devise de départ",
+  "exchangeRates": "Taux de change",
+  "ratesError": "Impossible de charger les taux de change",
+  "lastUpdate": "Mis à jour : {date}",
+  "@lastUpdate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "adminGreeting": "Bonjour, Admin",
+  "adminTitle": "Admin PackEasy",
+  "name": "Nom",
+  "country": "Pays",
+  "flagEmoji": "Emoji du drapeau",
+  "continent": "Continent",
+  "imageUrl": "URL de l'image",
+  "programTitle": "Titre du programme",
+  "programType": "Type de programme",
+  "durationField": "Durée (jours)",
+  "priceEuro": "Prix (€)",
+  "tripTitle": "Titre du voyage",
+  "startDate": "Date de début (JJ/MM/AAAA)",
+  "endDate": "Date de fin (JJ/MM/AAAA)",
+  "departure": "Départ : {date}",
+  "@departure": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noNotification": "Aucune notification",
+  "importSamples": "Importer les destinations d'exemple",
+  "samplesImported": "{count} destinations importées",
+  "@samplesImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "typeSeminar": "Séminaire",
+  "typeGroup": "Voyage de groupe",
+  "typeEurope": "Tour d'Europe",
+  "typeAdventure": "Aventure",
+  "typeRelax": "Détente",
+  "typeOther": "Autre",
+  "durationShort": "{days} j",
+  "@durationShort": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  }
 }

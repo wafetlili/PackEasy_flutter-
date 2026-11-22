@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../utils/l10n_ext.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -210,8 +211,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     children: [
                       _appear(
                         title,
-                        const Text(
-                          'Votre guide de voyage ultime.',
+                        Text(
+                          context.l10n.onbTitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 28,
@@ -222,9 +223,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       const SizedBox(height: 12),
                       _appear(
                         subtitle,
-                        const Text(
-                          'Trouvez la destination adaptée à votre budget, '
-                          'planifiez vos visites et préparez vos bagages.',
+                        Text(
+                          context.l10n.onbSubtitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 15, color: Colors.black54),
                         ),
@@ -249,11 +249,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30)),
                               ),
-                              // MODIFICATION ICI : Redirection vers '/login'
-                              onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
-                                  child: const Text('Commencer', style: TextStyle(fontSize: 18)),
-
-
+                              // Va vers l'accueil
+                              onPressed: () =>
+                                  Navigator.pushReplacementNamed(context, '/home'),
+                              child: Text(context.l10n.start,
+                                  style: const TextStyle(fontSize: 18)),
                             ),
                           ),
                         ),

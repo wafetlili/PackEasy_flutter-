@@ -1,4 +1,9 @@
+// ============================================================
+// trip_card.dart
+// Carte d'un voyage proposé par l'admin (collection "trips").
+// ============================================================
 import 'package:flutter/material.dart';
+import '../utils/l10n_ext.dart';
 
 class TripCard extends StatelessWidget {
   final Map<String, dynamic> trip;
@@ -6,15 +11,21 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
+
     return Container(
       width: 220,
-      margin: const EdgeInsets.only(right: 12),
+      margin: const EdgeInsetsDirectional.only(end: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white, width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,19 +34,39 @@ class TripCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.purple.withOpacity(0.2), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    color: Colors.purple.withValues(alpha: 0.2),
+                    shape: BoxShape.circle),
                 child: const Icon(Icons.flight_takeoff, color: Colors.purple, size: 20),
               ),
               const SizedBox(width: 8),
-              Expanded(child: Text(trip['destination'] ?? 'Voyage', style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                child: Text(
+                  trip['destination'] ?? '',
+                  style: const TextStyle(
+                      fontSize: 12, color: Colors.black54, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(trip['title'] ?? 'Sans titre', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            trip['title'] ?? '',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
           const SizedBox(height: 8),
-          Text('Du ${trip['startDate']} au ${trip['endDate']}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          Text(
+            l.tripFromTo('${trip['startDate'] ?? ''}', '${trip['endDate'] ?? ''}'),
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          ),
           const SizedBox(height: 8),
-          Text('${trip['price']} €', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.purple)),
+          Text('${trip['price'] ?? 0} €',
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold, color: Colors.purple)),
         ],
       ),
     );

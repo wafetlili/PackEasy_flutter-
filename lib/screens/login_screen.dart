@@ -1,13 +1,18 @@
 // ============================================================
 // login_screen.dart
-// Écran de connexion avec notification et redirection.
+// Connexion : email / mot de passe ou Google.
+// Formulaire validé (Form + TextFormField), erreurs claires,
+// notification de confirmation et redirection selon le rôle.
 // ============================================================
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'register_screen.dart';
-import 'forgot_password_screen.dart';
-import '../widgets/travel_background.dart';
 import '../services/notification_service.dart';
+import '../utils/l10n_ext.dart';
+import '../utils/labels.dart';
+import '../utils/ui.dart';
+import '../utils/validators.dart';
+import '../widgets/auth_scaffold.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
-  String? _errorMessage;
+  bool _hidePassword = true;
 
   @override
   void dispose() {
@@ -31,167 +36,139 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // ------------------------------------------------------------
-  // Connexion + Notification + Redirection
-  // ------------------------------------------------------------
+  // Connexion avec email et mot de passe
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      
-      final user = await _authService.signIn(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-      
-      setState(() => _isLoading = false);
-
-      if (user != null) {
-        // 1. Notification
-        NotificationService().showNotification(
-          title: 'Connexion réussie',
-          body: 'Ravi de vous revoir sur PackEasy !',
-        );
-
-        // 2. SnackBar
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Bienvenue sur PackEasy !")),
-        );
-
-        // 3. REDIRECTION (C'est ce qui manquait !)
-        Navigator.pushReplacementNamed(context, '/home'); 
-        
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email ou mot de passe incorrect")),
-        );
-      }
-    }
+    if (!_formKey.currentState!.validate()) return;
+    await _run(() => _authService.signIn(
+          _emailController.text.trim(),
+          _passwordController.text,
+        ));
   }
 
-  // Style des champs
-  InputDecoration _inputStyle(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20, color: Colors.teal.shade300),
-      filled: true,
-      fillColor: Colors.white.withOpacity(0.4),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      labelStyle: const TextStyle(color: Colors.black54),
-      floatingLabelStyle: const TextStyle(color: Colors.teal),
-    );
+  // Connexion avec Google
+  Future<void> _loginWithGoogle() async {
+    await _run(() => _authService.signInWithGoogle());
+  }
+
+  // Exécute une connexion : chargement, erreur éventuelle, puis redirection
+  Future<void> _run(Future<User> Function() action) async {
+    final l = context.l10n;
+    setState(() => _isLoading = true);
+    try {
+      final user = await action();
+      final role = await _authService.getUserRole(user.uid);
+      if (!mounted) return;
+
+      // Notification locale de confirmation
+      NotificationService().showNotification(
+        title: l.loginSuccess,
+        body: l.welcomeBack,
+        payload: 'favorites',
+      );
+      showMessage(context, l.loginSuccess);
+
+      // L'admin va vers son tableau de bord, les autres vers l'accueil
+      Navigator.pushReplacementNamed(
+        context,
+        role == 'admin' ? '/admin_dashboard' : '/home',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      // Fermer la fenêtre Google n'est pas une vraie erreur
+      showMessage(context, errorMessage(l, e), error: e is! AuthCancelledException);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return TravelBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.black87),
-          title: const Text(
-            "Connexion",
-            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
-          ),
-        ),
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, spreadRadius: 5),
-                ],
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.flight_takeoff, size: 50, color: Colors.teal),
-                    const SizedBox(height: 16),
-                    const Text(
-                      "Bon retour !",
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal),
-                    ),
-                    const SizedBox(height: 32),
+    final l = context.l10n;
+    final v = Validators(l);
+    final primary = Theme.of(context).colorScheme.primary;
 
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: _inputStyle("Email", Icons.email_outlined),
-                      validator: (v) => v!.isEmpty || !v.contains('@') ? "Email invalide" : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: _inputStyle("Mot de passe", Icons.lock_outline),
-                      validator: (v) => v!.length < 6 ? "Min 6 caractères" : null,
-                    ),
+    return AuthScaffold(
+      title: l.login,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.flight_takeoff, size: 50, color: primary),
+            const SizedBox(height: 16),
+            Text(l.loginTitle,
+                style: TextStyle(
+                    fontSize: 24, fontWeight: FontWeight.bold, color: primary)),
+            const SizedBox(height: 28),
 
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _isLoading ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
-                        child: const Text("Mot de passe oublié ?", style: TextStyle(fontSize: 13, color: Colors.teal)),
-                      ),
-                    ),
+            // Champ email
+            TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: authInputStyle(context, l.email, Icons.email_outlined),
+              validator: v.email,
+            ),
+            const SizedBox(height: 16),
 
-                    if (_errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-                      ),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                        child: _isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
-                          : const Text("Se connecter", style: TextStyle(fontSize: 16)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : () async {
-                        // Logique Google
-                      },
-                      icon: const Icon(Icons.g_mobiledata, size: 28),
-                      label: const Text("Continuer avec Google"),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                        side: BorderSide(color: Colors.teal.shade200),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: _isLoading ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                      child: const Text("Pas de compte ? S'inscrire", style: TextStyle(color: Colors.teal)),
-                    ),
-                  ],
+            // Champ mot de passe (avec bouton afficher/masquer)
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _hidePassword,
+              decoration: authInputStyle(context, l.password, Icons.lock_outline)
+                  .copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(_hidePassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _hidePassword = !_hidePassword),
                 ),
               ),
+              validator: v.password,
             ),
-          ),
+
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                onPressed: _isLoading
+                    ? null
+                    : () => Navigator.pushNamed(context, '/forgot_password'),
+                child: Text(l.forgotPassword, style: const TextStyle(fontSize: 13)),
+              ),
+            ),
+
+            // Bouton de connexion
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton(
+                onPressed: _isLoading ? null : _login,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(l.login, style: const TextStyle(fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Bouton Google
+            OutlinedButton.icon(
+              onPressed: _isLoading ? null : _loginWithGoogle,
+              icon: const Icon(Icons.g_mobiledata, size: 28),
+              label: Text(l.continueGoogle),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            TextButton(
+              onPressed: _isLoading
+                  ? null
+                  : () => Navigator.pushNamed(context, '/register'),
+              child: Text(l.noAccount),
+            ),
+          ],
         ),
       ),
     );

@@ -1,7 +1,16 @@
+// ============================================================
+// destination_card.dart
+// Carte d'une destination dans la liste de l'accueil.
+// Animations : apparition, zoom au survol, bouton favori animé
+// (AnimatedContainer) et image partagée avec la page de détails (Hero).
+// ============================================================
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/destination.dart';
 import '../providers/destination_provider.dart';
+import '../utils/labels.dart';
+import '../utils/l10n_ext.dart';
+import '../utils/ui.dart';
 import 'destination_image.dart';
 
 class DestinationCard extends StatefulWidget {
@@ -17,16 +26,34 @@ class DestinationCard extends StatefulWidget {
 class _DestinationCardState extends State<DestinationCard> {
   bool _hover = false;
 
+  // Ajoute ou retire des favoris, puis affiche un message
+  Future<void> _toggleFavorite() async {
+    final d = widget.destination;
+    final l = context.l10n;
+    try {
+      final isNowFavorite = await context.read<DestinationProvider>().toggleFavorite(d.id);
+      if (!mounted) return;
+      showMessage(
+        context,
+        isNowFavorite ? l.addedToFavorites(d.name) : l.removedFromFavorites(d.name),
+      );
+    } catch (e) {
+      if (mounted) showMessage(context, errorMessage(l, e), error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = widget.destination;
-    final provider = context.watch<DestinationProvider>();
-    final isFav = provider.isFavorite(d.id);
+    final l = context.l10n;
+    final isFav = context.watch<DestinationProvider>().isFavorite(d.id);
 
     // Apparition : fondu + glissement
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 400 + widget.index * 100),
+      // Les cartes au-delà de la 7e apparaissent toutes au même rythme
+      duration: Duration(
+          milliseconds: 400 + (widget.index > 6 ? 6 : widget.index) * 100),
       builder: (context, value, child) => Opacity(
         opacity: value,
         child: Transform.translate(offset: Offset(0, 40 * (1 - value)), child: child),
@@ -39,7 +66,7 @@ class _DestinationCardState extends State<DestinationCard> {
           scale: _hover ? 1.02 : 1,
           duration: const Duration(milliseconds: 200),
           child: GestureDetector(
-            // Lance l'avion puis ouvre la page de détails
+            // Ouvre la page de détails en lui passant la destination en argument
             onTap: () => Navigator.pushNamed(context, '/details', arguments: d),
             child: Container(
               margin: const EdgeInsets.only(bottom: 18),
@@ -57,7 +84,11 @@ class _DestinationCardState extends State<DestinationCard> {
                 borderRadius: BorderRadius.circular(24),
                 child: Stack(
                   children: [
-                    DestinationImage(destination: d, height: 230),
+                    // Hero : l'image "voyage" vers la page de détails
+                    Hero(
+                      tag: 'destination-${d.id}',
+                      child: DestinationImage(destination: d, height: 230),
+                    ),
 
                     // Dégradé + infos
                     Positioned(
@@ -98,9 +129,9 @@ class _DestinationCardState extends State<DestinationCard> {
                     ),
 
                     // Étiquette continent • catégorie
-                    Positioned(
+                    PositionedDirectional(
                       top: 14,
-                      left: 14,
+                      start: 14,
                       child: Container(
                         padding:
                             const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -108,26 +139,18 @@ class _DestinationCardState extends State<DestinationCard> {
                           color: Colors.black45,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text('${d.continent} • ${d.category}',
+                        child: Text(
+                            '${continentLabel(l, d.continent)} • ${categoryLabel(l, d.category)}',
                             style: const TextStyle(color: Colors.white, fontSize: 12)),
                       ),
                     ),
 
                     // Bouton favori animé
-                    Positioned(
+                    PositionedDirectional(
                       top: 12,
-                      right: 12,
+                      end: 12,
                       child: GestureDetector(
-                        onTap: () {
-                          provider.toggleFavorite(d.id);
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(isFav
-                                ? '${d.name} retiré des favoris'
-                                : '${d.name} ajouté aux favoris'),
-                            duration: const Duration(seconds: 1),
-                          ));
-                        },
+                        onTap: _toggleFavorite,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           padding: EdgeInsets.all(isFav ? 12 : 8),

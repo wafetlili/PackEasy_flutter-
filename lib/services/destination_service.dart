@@ -6,47 +6,20 @@ String _img(String id) => 'https://images.unsplash.com/$id?w=1000&q=80';
 class DestinationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<List<Destination>> fetchDestinations() async {
-    try {
-      // 1. On tente de récupérer les données depuis Firestore
-      final snapshot = await _firestore.collection('destinations').get();
-
-      // 2. Si Firestore contient des destinations (ajoutées par l'Admin), on les utilise
-      if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.map((doc) {
-          final data = doc.data();
-          return Destination(
-            id: doc.id,
-            name: data['name'] ?? 'Sans nom',
-            country: data['country'] ?? 'Inconnu',
-            flag: data['flag'] ?? '🌍',
-            continent: data['continent'] ?? 'Monde',
-            category: data['category'] ?? 'Ville',
-            image: data['image'] ?? 'https://via.placeholder.com/400',
-            description: data['description'] ?? 'Aucune description.',
-            budget: data['budget'] ?? 0,
-            rating: (data['rating'] ?? 4.0).toDouble(),
-            season: data['season'] ?? 'Toute l\'année',
-            language: data['language'] ?? 'Local',
-            currency: data['currency'] ?? 'EUR',
-            temp: data['temp'] ?? '25°C',
-            highlights: List<String>.from(data['highlights'] ?? []),
-          );
-        }).toList();
-      }
-
-      // 3. Si Firestore est vide, on retourne les destinations statiques de secours
-      return _getStaticDestinations();
-      
-    } catch (e) {
-      print("Erreur Firestore, chargement des destinations statiques : $e");
-      // 4. En cas d'erreur, on retourne aussi la liste statique
-      return _getStaticDestinations();
+  // Importe les destinations d'exemple dans Firestore (bouton réservé à l'admin).
+  // L'identifiant du document est fixe : relancer l'import ne crée pas de doublons.
+  Future<int> importSamples() async {
+    final samples = getStaticDestinations();
+    final batch = _firestore.batch();
+    for (final d in samples) {
+      batch.set(_firestore.collection('destinations').doc('sample_${d.id}'), d.toMap());
     }
+    await batch.commit();
+    return samples.length;
   }
 
-  // --- TA LISTE STATIQUE DE SECOURS (inchangée) ---
-  List<Destination> _getStaticDestinations() {
+  // Destinations d'exemple : affichées tant que Firestore est vide ou inaccessible
+  List<Destination> getStaticDestinations() {
     return [
       // ---------- AFRIQUE ----------
       Destination(

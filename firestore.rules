@@ -1,0 +1,51 @@
+// ============================================================
+// Règles de sécurité Firestore (OPTIONNEL)
+// À copier dans : Console Firebase > Firestore > Règles > Publier
+// Si votre base est en "mode test", tout fonctionne déjà sans ces règles.
+// ============================================================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Vrai si l'utilisateur connecté a le rôle "admin" dans users/{uid}
+    function isAdmin() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Contenu public : lu par tout le monde, modifié par l'admin seulement
+    match /destinations/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /programs/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /trips/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Profil utilisateur
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // Un utilisateur ne peut créer que son propre profil avec le rôle "user"
+      allow create: if signedIn() && request.auth.uid == uid
+                    && request.resource.data.role == 'user';
+      // Il ne peut pas changer son propre rôle
+      allow update: if signedIn() && request.auth.uid == uid
+                    && request.resource.data.role == resource.data.role;
+      allow delete: if isAdmin();
+
+      // Données privées : voyages, dépenses, valise, favoris
+      match /{collection}/{doc} {
+        allow read, write: if signedIn() && request.auth.uid == uid;
+      }
+    }
+  }
+}
